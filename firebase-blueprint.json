@@ -1,0 +1,151 @@
+{
+  "entities": {
+    "Question": {
+      "title": "Question",
+      "description": "Examination question for Madhyamik Geography portal",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "chapter": { "type": "integer" },
+        "marks": { "type": "integer" },
+        "question_bengali": { "type": "string" },
+        "question_english": { "type": "string" },
+        "sample_answer_bengali": { "type": "string" },
+        "sample_answer_english": { "type": "string" },
+        "is_system_auto": { "type": "boolean" },
+        "updated_at": { "type": "string" }
+      },
+      "required": ["chapter", "marks", "question_bengali"]
+    },
+    "User": {
+      "title": "User",
+      "description": "User account for student, teacher, or admin",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "role": { "type": "string" },
+        "status": { "type": "string" },
+        "school_name": { "type": "string" },
+        "created_at": { "type": "string" }
+      },
+      "required": ["name", "phone", "role"]
+    },
+    "ChapterAnswerSheet": {
+      "title": "ChapterAnswerSheet",
+      "description": "Uploaded PDF answer sheets for 2, 3, 5 marks by chapter and tier",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "chapter": { "type": "integer" },
+        "marks": { "type": "integer" },
+        "tier": { "type": "string" },
+        "language": { "type": "string" },
+        "file_name": { "type": "string" },
+        "updated_at": { "type": "string" }
+      },
+      "required": ["chapter", "marks", "tier", "language"]
+    },
+    "Payment": {
+      "title": "Payment",
+      "description": "Fee payment transaction submission and approval",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "student_id": { "type": "string" },
+        "student_name": { "type": "string" },
+        "student_phone": { "type": "string" },
+        "amount": { "type": "number" },
+        "utr_transaction_id": { "type": "string" },
+        "status": { "type": "string" },
+        "created_at": { "type": "string" }
+      },
+      "required": ["student_phone", "amount", "status"]
+    },
+    "MockTest": {
+      "title": "MockTest",
+      "description": "Mock test definitions and questions",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "chapter": { "type": "integer" },
+        "time_limit_minutes": { "type": "integer" },
+        "is_active": { "type": "boolean" },
+        "created_at": { "type": "string" }
+      },
+      "required": ["title", "chapter"]
+    },
+    "SystemSetting": {
+      "title": "SystemSetting",
+      "description": "Central configuration settings",
+      "type": "object",
+      "properties": {
+        "key": { "type": "string" },
+        "value": { "type": "string" },
+        "updated_at": { "type": "string" }
+      },
+      "required": ["key"]
+    },
+    "UserPurchase": {
+      "title": "UserPurchase",
+      "description": "Student subscription and bundle purchases",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "username": { "type": "string" },
+        "item_type": { "type": "string" },
+        "item_id": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["username", "status"]
+    },
+    "PromoRequest": {
+      "title": "PromoRequest",
+      "description": "Student promo code applications and approvals",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "username": { "type": "string" },
+        "promo_code": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["username", "promo_code", "status"]
+    }
+  },
+  "firestore": {
+    "/questions/{questionId}": {
+      "schema": "Question",
+      "description": "Repository of all syllabus questions"
+    },
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Registered students, teachers, and administrators"
+    },
+    "/chapter_answer_sheets/{sheetId}": {
+      "schema": "ChapterAnswerSheet",
+      "description": "Official answer keys and PDF guides"
+    },
+    "/payments/{paymentId}": {
+      "schema": "Payment",
+      "description": "Fee payment records and verification"
+    },
+    "/mock_tests/{testId}": {
+      "schema": "MockTest",
+      "description": "Mock test series"
+    },
+    "/system_settings/{settingId}": {
+      "schema": "SystemSetting",
+      "description": "System settings and global controls"
+    },
+    "/user_purchases/{purchaseId}": {
+      "schema": "UserPurchase",
+      "description": "Student purchase permissions"
+    },
+    "/promo_requests/{promoId}": {
+      "schema": "PromoRequest",
+      "description": "Promo code requests and approval records"
+    }
+  }
+}

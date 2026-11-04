@@ -1,0 +1,6 @@
+{
+  "name": "WBBSE Geography Portal & Digital Lab",
+  "description": "West Bengal Board Class 10 Geography Exam Preparation Portal & Digital Lab by Shawon Kar & Sukannya Chakraborty",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

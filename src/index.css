@@ -1,0 +1,471 @@
+@import "tailwindcss";
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    background-color: #f1f5f9;
+    color: #0f172a;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    margin: 0;
+    padding: 0;
+    min-height: 100%;
+  }
+}
+
+/* Mobile Safe Areas & Bottom Navigation Bar */
+.pb-safe {
+  padding-bottom: max(env(safe-area-inset-bottom, 16px), 16px);
+}
+.pt-safe {
+  padding-top: max(env(safe-area-inset-top, 12px), 12px);
+}
+.mobile-bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(226, 232, 240, 0.95);
+  box-shadow: 0 -10px 25px -5px rgba(0, 0, 0, 0.08);
+  z-index: 50;
+  padding-bottom: max(env(safe-area-inset-bottom, 8px), 8px);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+
+/* Custom Streamlit-authentic styling with mobile responsiveness */
+.header-box {
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #0284c7 100%);
+  padding: 18px 16px;
+  border-radius: 16px;
+  color: #ffffff !important;
+  text-align: center;
+  margin-bottom: 16px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+}
+@media (min-width: 640px) {
+  .header-box {
+    padding: 26px 24px;
+    margin-bottom: 22px;
+  }
+}
+.header-box h1 {
+  color: #ffffff !important;
+  font-size: clamp(1.15rem, 3.8vw, 1.85rem) !important;
+  font-weight: 800 !important;
+  line-height: 1.25 !important;
+  margin: 0;
+}
+.header-box p {
+  color: #e0e7ff !important;
+  font-size: clamp(0.75rem, 2.4vw, 0.95rem) !important;
+  margin-top: 6px;
+  line-height: 1.4;
+}
+
+.card-short {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+  border-left: 6px solid #2563eb;
+  margin-bottom: 18px;
+  border-top: 1.5px solid #cbd5e1;
+  border-right: 1.5px solid #cbd5e1;
+  border-bottom: 1.5px solid #cbd5e1;
+}
+
+.card-broad {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+  border-left: 6px solid #7c3aed;
+  margin-bottom: 18px;
+  border-top: 1.5px solid #cbd5e1;
+  border-right: 1.5px solid #cbd5e1;
+  border-bottom: 1.5px solid #cbd5e1;
+}
+
+.price-card {
+  background: linear-gradient(135deg, #ffffff 0%, #eff6ff 100%);
+  padding: 22px;
+  border-radius: 14px;
+  text-align: center;
+  border: 2px solid #2563eb;
+  margin-bottom: 15px;
+  box-shadow: 0 6px 18px rgba(37,99,235,0.12);
+}
+.price-card h3 {
+  color: #1e3a8a !important;
+  margin: 0 0 8px 0;
+  font-size: 1.3rem !important;
+  font-weight: 700;
+}
+.price-card p {
+  color: #475569 !important;
+  font-size: 0.95rem;
+}
+.price-tag {
+  font-size: 2.2rem;
+  font-weight: 900;
+  color: #059669 !important;
+  margin: 10px 0;
+}
+
+.price-card-premium {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 50%, #fcd34d 100%);
+  padding: 26px;
+  border-radius: 14px;
+  text-align: center;
+  border: 3px solid #f59e0b;
+  margin-bottom: 15px;
+  box-shadow: 0 8px 22px rgba(245,158,11,0.25);
+}
+.price-card-premium h3 {
+  color: #78350f !important;
+  margin: 0 0 8px 0;
+  font-size: 1.4rem !important;
+  font-weight: 800;
+}
+.price-card-premium p {
+  color: #92400e !important;
+  font-size: 0.95rem;
+}
+.price-tag-premium {
+  font-size: 2.6rem;
+  font-weight: 900;
+  color: #b45309 !important;
+  margin: 12px 0;
+}
+
+.footer-block {
+  background-color: #0f172a;
+  color: #f8fafc;
+  padding: 28px;
+  border-radius: 14px;
+  text-align: center;
+  margin-top: 50px;
+  border-top: 5px solid #2563eb;
+}
+.footer-block * {
+  color: #f8fafc !important;
+}
+.footer-block h3 {
+  color: #38bdf8 !important;
+}
+
+.lock-box {
+  background: #fef3c7;
+  border: 2px dashed #f59e0b;
+  padding: 20px;
+  border-radius: 12px;
+  text-align: center;
+  margin-bottom: 15px;
+}
+.lock-box * {
+  color: #78350f !important;
+}
+
+.ask-corner-card {
+  background: #ffffff;
+  padding: 15px;
+  border-radius: 10px;
+  border-left: 5px solid #16a34a;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.assigned-card {
+  background: linear-gradient(135deg, #fef3c7 0%, #fef9c3 100%);
+  padding: 18px;
+  border-radius: 12px;
+  border-left: 5px solid #f59e0b;
+  margin-bottom: 14px;
+}
+.assigned-card * {
+  color: #78350f !important;
+}
+
+/* Streamlit button style */
+.st-btn {
+  background-color: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+  padding: 9px 16px;
+  cursor: pointer;
+  transition: background-color 0.15s ease-in-out;
+}
+.st-btn:hover {
+  background-color: #1d4ed8;
+}
+.st-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.st-input, .st-textarea, .st-select {
+  background-color: #ffffff;
+  color: #0f172a;
+  border: 1.5px solid #94a3b8;
+  border-radius: 8px;
+  font-weight: 600;
+  padding: 8px 12px;
+  width: 100%;
+  outline: none;
+}
+.st-input:focus, .st-textarea:focus, .st-select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37,99,235,0.2);
+}
+
+/* Modern Dynamic Auth System Styling & Animations */
+@keyframes aurora-pulse {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.6;
+  }
+  33% {
+    transform: translate(30px, -20px) scale(1.1);
+    opacity: 0.8;
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.95);
+    opacity: 0.7;
+  }
+}
+
+@keyframes aurora-pulse-reverse {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.5;
+  }
+  33% {
+    transform: translate(-30px, 25px) scale(1.15);
+    opacity: 0.75;
+  }
+  66% {
+    transform: translate(25px, -15px) scale(0.9);
+    opacity: 0.6;
+  }
+}
+
+@keyframes badge-float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes subtle-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.aurora-bg-orb1 {
+  position: absolute;
+  top: -10%;
+  left: -5%;
+  width: 480px;
+  height: 480px;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.28) 0%, rgba(99, 102, 241, 0.15) 50%, transparent 70%);
+  filter: blur(55px);
+  border-radius: 50%;
+  pointer-events: none;
+  animation: aurora-pulse 14s ease-in-out infinite;
+  z-index: 0;
+}
+
+.aurora-bg-orb2 {
+  position: absolute;
+  bottom: -10%;
+  right: -5%;
+  width: 460px;
+  height: 460px;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.22) 0%, rgba(14, 165, 233, 0.18) 50%, transparent 70%);
+  filter: blur(55px);
+  border-radius: 50%;
+  pointer-events: none;
+  animation: aurora-pulse-reverse 16s ease-in-out infinite;
+  z-index: 0;
+}
+
+.aurora-bg-orb3 {
+  position: absolute;
+  top: 35%;
+  left: 40%;
+  width: 320px;
+  height: 320px;
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.15) 0%, rgba(244, 63, 94, 0.08) 50%, transparent 70%);
+  filter: blur(65px);
+  border-radius: 50%;
+  pointer-events: none;
+  animation: aurora-pulse 18s ease-in-out infinite;
+  z-index: 0;
+}
+
+.auth-floating-badge {
+  animation: badge-float 4s ease-in-out infinite;
+}
+
+.auth-glass-panel {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 20px 40px -15px rgba(15, 23, 42, 0.1), 0 0 0 1px rgba(226, 232, 240, 0.8);
+  position: relative;
+  z-index: 1;
+}
+
+.auth-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1.5px solid rgba(226, 232, 240, 0.9);
+  border-radius: 28px;
+  box-shadow: 0 25px 60px -15px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(255, 255, 255, 0.8) inset;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  z-index: 1;
+}
+
+.auth-card:hover {
+  box-shadow: 0 35px 70px -15px rgba(15, 23, 42, 0.16);
+}
+
+.auth-tab-pill {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.auth-tab-pill-active {
+  background: #ffffff;
+  color: #1e3a8a;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+  transform: translateY(-1px);
+}
+
+.auth-submit-gradient {
+  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #3b82f6 100%);
+  background-size: 200% 100%;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 8px 20px -4px rgba(37, 99, 235, 0.4);
+}
+.auth-submit-gradient:hover {
+  background-position: 100% 0;
+  box-shadow: 0 12px 28px -4px rgba(37, 99, 235, 0.55);
+  transform: translateY(-2px);
+}
+.auth-submit-gradient:active {
+  transform: translateY(0);
+}
+
+.auth-role-pill {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.auth-role-pill:hover {
+  transform: translateY(-2px);
+}
+
+.co-admin-badge-glow {
+  box-shadow: 0 0 15px rgba(99, 102, 241, 0.35);
+  animation: badge-float 3s ease-in-out infinite;
+}
+
+.head-admin-badge-glow {
+  box-shadow: 0 0 15px rgba(245, 158, 11, 0.4);
+}
+
+/* ==========================================================================
+   A4 Landscape Print Rules for School Prospectus Presentation
+   ========================================================================== */
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 6mm 8mm;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  html, body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Hide app shell, sidebar, mobile navigation, headers, and interactive buttons */
+  aside,
+  header,
+  nav,
+  footer,
+  .mobile-bottom-nav,
+  .no-print,
+  button,
+  input,
+  [role="navigation"],
+  .aurora-bg-orb1,
+  .aurora-bg-orb2,
+  .aurora-bg-orb3 {
+    display: none !important;
+  }
+
+  /* Force printable presentation container to display across whole page */
+  .prospectus-screen-only {
+    display: none !important;
+  }
+
+  .prospectus-print-deck {
+    display: block !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .prospectus-print-slide {
+    display: block !important;
+    page-break-after: always !important;
+    break-after: page !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    width: 100% !important;
+    min-height: 96vh !important;
+    box-sizing: border-box !important;
+    margin: 0 0 10mm 0 !important;
+    padding: 4mm !important;
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 8px !important;
+  }
+}
+
+

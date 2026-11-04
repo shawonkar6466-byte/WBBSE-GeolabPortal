@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e3a8a"/>
+      <stop offset="50%" stop-color="#1e40af"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <linearGradient id="globe" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="50%" stop-color="#0284c7"/>
+      <stop offset="100%" stop-color="#0369a1"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fde047"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <!-- Background rounded squircle with safe margin for maskable icon -->
+  <rect width="512" height="512" rx="110" fill="url(#bg)"/>
+
+  <!-- Outer Globe Ring -->
+  <circle cx="256" cy="240" r="140" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="6"/>
+
+  <!-- Main Globe -->
+  <g filter="url(#shadow)">
+    <circle cx="256" cy="240" r="125" fill="url(#globe)"/>
+    
+    <!-- Longitude & Latitude Grids -->
+    <ellipse cx="256" cy="240" rx="70" ry="125" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="3"/>
+    <ellipse cx="256" cy="240" rx="125" ry="45" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="3"/>
+    <line x1="256" y1="115" x2="256" y2="365" stroke="rgba(255,255,255,0.4)" stroke-width="3"/>
+    <line x1="131" y1="240" x2="381" y2="240" stroke="rgba(255,255,255,0.4)" stroke-width="3"/>
+
+    <!-- Continents silhouette hint -->
+    <path d="M 210 170 Q 235 150, 260 165 Q 290 185, 275 220 Q 255 240, 220 220 Z" fill="rgba(255,255,255,0.35)"/>
+    <path d="M 285 240 Q 320 250, 330 280 Q 315 310, 280 300 Q 260 270, 285 240 Z" fill="rgba(255,255,255,0.35)"/>
+  </g>
+
+  <!-- Graduation Cap / Golden Trophy Overlay -->
+  <g filter="url(#shadow)">
+    <!-- Mortarboard cap top diamond -->
+    <polygon points="256,90 350,135 256,180 162,135" fill="url(#gold)" stroke="#b45309" stroke-width="4"/>
+    <!-- Cap skullcap base -->
+    <path d="M 195 155 Q 256 195, 317 155 L 317 175 Q 256 220, 195 175 Z" fill="#b45309"/>
+    <!-- Tassel -->
+    <path d="M 320 150 Q 345 175, 342 210" fill="none" stroke="#fde047" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="342" cy="214" r="5" fill="#fde047"/>
+  </g>
+
+  <!-- Open Book Base Badge at Bottom -->
+  <g filter="url(#shadow)" transform="translate(0, 15)">
+    <!-- Book pages background pill -->
+    <rect x="146" y="360" width="220" height="42" rx="12" fill="#ffffff"/>
+    <text x="256" y="388" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="900" fill="#1e3a8a" text-anchor="middle" letter-spacing="2">WBBSE GEO</text>
+  </g>
+
+  <!-- Star accents -->
+  <polygon points="120,110 125,123 138,125 128,135 130,148 119,141 108,148 110,135 100,125 113,123" fill="#fde047" opacity="0.9"/>
+  <polygon points="392,110 397,123 410,125 400,135 402,148 391,141 380,148 382,135 372,125 385,123" fill="#fde047" opacity="0.9"/>
+</svg>
