@@ -111,6 +111,7 @@ async function pushUserToCloud(user: any) {
       class_grade: user.class_grade || '10',
       phone: user.phone || '',
       district: user.district || '',
+      email: user.email || '',
       approved: user.approved !== undefined ? user.approved : 0,
       is_admin: user.is_admin || 0,
       referral_code: user.referral_code || '',
@@ -329,8 +330,8 @@ async function initialSyncWithCloud(sqliteDb: any) {
 
     const insertUser = sqliteDb.prepare(`
       INSERT OR REPLACE INTO users 
-      (id, username, password, role, full_name, school_name, class_grade, phone, district, approved, is_admin, referral_code, referral_count, mp_exam_year, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (id, username, password, role, full_name, school_name, class_grade, phone, district, email, approved, is_admin, referral_code, referral_count, mp_exam_year, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     cloudUsersSnap.forEach((docSnap) => {
       const u = docSnap.data();
@@ -339,7 +340,7 @@ async function initialSyncWithCloud(sqliteDb: any) {
         insertUser.run(
           u.id || null, u.username, u.password, u.role || 'student', u.full_name || '',
           u.school_name || '', u.class_grade || '10', u.phone || '', u.district || '',
-          u.approved || 0, u.is_admin || 0, u.referral_code || '', u.referral_count || 0,
+          u.email || '', u.approved || 0, u.is_admin || 0, u.referral_code || '', u.referral_count || 0,
           u.mp_exam_year || 2027, u.created_at || new Date().toISOString()
         );
       }
@@ -462,17 +463,17 @@ function startPeriodicCloudSync(sqliteDb: any) {
       const usersSnap = await getDocs(collection(cdb, 'users'));
       const updateUserStmt = sqliteDb.prepare(`
         INSERT OR REPLACE INTO users 
-        (id, username, password, role, full_name, school_name, class_grade, phone, district, approved, is_admin, referral_code, referral_count, mp_exam_year, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (id, username, password, role, full_name, school_name, class_grade, phone, district, email, approved, is_admin, referral_code, referral_count, mp_exam_year, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
       usersSnap.forEach((docSnap) => {
         const u = docSnap.data();
-        const local = sqliteDb.prepare('SELECT approved, role, password FROM users WHERE username = ?').get(u.username) as any;
-        if (!local || local.approved !== u.approved || local.role !== u.role || local.password !== u.password) {
+        const local = sqliteDb.prepare('SELECT approved, role, password, email FROM users WHERE username = ?').get(u.username) as any;
+        if (!local || local.approved !== u.approved || local.role !== u.role || local.password !== u.password || local.email !== u.email) {
           updateUserStmt.run(
             u.id || null, u.username, u.password, u.role || 'student', u.full_name || '',
             u.school_name || '', u.class_grade || '10', u.phone || '', u.district || '',
-            u.approved || 0, u.is_admin || 0, u.referral_code || '', u.referral_count || 0,
+            u.email || '', u.approved || 0, u.is_admin || 0, u.referral_code || '', u.referral_count || 0,
             u.mp_exam_year || 2027, u.created_at || new Date().toISOString()
           );
         }
@@ -599,6 +600,7 @@ function initSchema() {
       id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE,
       password TEXT, role TEXT DEFAULT 'student', full_name TEXT,
       school_name TEXT, class_grade TEXT, phone TEXT, district TEXT,
+      email TEXT DEFAULT '',
       approved INTEGER DEFAULT 0, is_admin INTEGER DEFAULT 0,
       referral_code TEXT DEFAULT '', referral_count INTEGER DEFAULT 0,
       mp_exam_year INTEGER DEFAULT 2027,
@@ -623,9 +625,6 @@ function initSchema() {
       file_name TEXT, file_data TEXT, uploader TEXT, price INTEGER DEFAULT 0,
       is_published INTEGER DEFAULT 1, language TEXT DEFAULT 'Bengali', timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
     );
-    try {
-      db.exec(`ALTER TABLE mock_tests ADD COLUMN language TEXT DEFAULT 'Bengali';`);
-    } catch (_) {}
     CREATE TABLE IF NOT EXISTS system_settings (
       key TEXT PRIMARY KEY, value TEXT
     );
@@ -732,6 +731,32 @@ function initSchema() {
   } catch {}
   try {
     db.exec("ALTER TABLE chapter_answer_sheets ADD COLUMN language TEXT DEFAULT 'Bengali';");
+  } catch {}
+  try {
+    db.exec("ALTER TABLE mock_tests ADD COLUMN language TEXT DEFAULT 'Bengali';");
+  } catch {}
+  try {
+    db.exec("ALTER TABLE users ADD COLUMN email TEXT DEFAULT '';");
+  } catch {}
+  try {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS mock_exam_access_requests (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        mock_id INTEGER,
+        mock_code TEXT,
+        student_username TEXT,
+        student_name TEXT,
+        student_phone TEXT,
+        ip_address TEXT,
+        device_info TEXT,
+        status TEXT DEFAULT 'Pending',
+        admin_note TEXT DEFAULT '',
+        approved_by TEXT DEFAULT '',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        approved_at DATETIME
+      );
+      CREATE INDEX IF NOT EXISTS idx_mock_req_student ON mock_exam_access_requests(student_username, mock_id);
+    `);
   } catch {}
   try {
     db.exec('CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);');
@@ -1456,6 +1481,7 @@ async function startServer() {
           school_name: user.school_name,
           phone: user.phone,
           district: user.district,
+          email: user.email || '',
           approved: user.approved,
           is_admin: user.is_admin,
           is_head_admin: isHeadAdmin,
@@ -1472,7 +1498,7 @@ async function startServer() {
 
   app.post('/api/auth/register', (req, res) => {
     try {
-      const { name, school, class_grade, phone, district, password, role, referral_code, mp_exam_year } = req.body;
+      const { name, school, class_grade, phone, district, email, password, role, referral_code, mp_exam_year } = req.body;
       if (!name || !school || !phone || !password) {
         return res.status(400).json({ error: 'Missing required fields' });
       }
@@ -1484,12 +1510,13 @@ async function startServer() {
 
       const prefix = role === 'teacher' ? 'T' : '';
       const auto_ref = `GEO-REF-${prefix}${phone.slice(-4) || '10'}`;
+      const userEmail = email ? String(email).trim() : '';
 
       try {
         db.prepare(`
-          INSERT INTO users (username, password, role, full_name, school_name, class_grade, phone, district, approved, is_admin, referral_code, mp_exam_year)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
-        `).run(phone, password, role || 'student', name, school, class_grade || 'Class 10', phone, district || '', initialApproved, auto_ref, mpYear);
+          INSERT INTO users (username, password, role, full_name, school_name, class_grade, phone, district, email, approved, is_admin, referral_code, mp_exam_year)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
+        `).run(phone, password, role || 'student', name, school, class_grade || 'Class 10', phone, district || '', userEmail, initialApproved, auto_ref, mpYear);
 
         if (referral_code && referral_code.trim()) {
           db.prepare('UPDATE users SET referral_count = referral_count + 1 WHERE referral_code = ?').run(referral_code.trim());
@@ -1524,7 +1551,7 @@ async function startServer() {
       const username = req.query.username as string;
       if (!username) return res.status(400).json({ error: 'Username required' });
       const user = db.prepare(`
-        SELECT id, username, role, full_name, school_name, class_grade, phone, district, approved, is_admin, referral_code, referral_count, mp_exam_year
+        SELECT id, username, role, full_name, school_name, class_grade, phone, district, email, approved, is_admin, referral_code, referral_count, mp_exam_year
         FROM users
         WHERE username = ? OR phone = ?
       `).get(username, username) as any;
@@ -1544,18 +1571,18 @@ async function startServer() {
           const snap = await getDocs(collection(cdb, 'users'));
           const insertOrUpdate = db.prepare(`
             INSERT OR REPLACE INTO users 
-            (id, username, password, role, full_name, school_name, class_grade, phone, district, approved, is_admin, referral_code, referral_count, mp_exam_year, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (id, username, password, role, full_name, school_name, class_grade, phone, district, email, approved, is_admin, referral_code, referral_count, mp_exam_year, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           `);
           snap.forEach(d => {
             const u = d.data();
-            const local = db.prepare('SELECT id, password, approved FROM users WHERE username = ? OR phone = ?').get(u.username, u.phone) as any;
+            const local = db.prepare('SELECT id, password, approved, email FROM users WHERE username = ? OR phone = ?').get(u.username, u.phone) as any;
             // Respect highest approved status
             const finalApproved = Math.max(local?.approved || 0, u.approved || 0);
             insertOrUpdate.run(
               local?.id || u.id || null, u.username || u.phone, u.password || local?.password || '123456',
               u.role || 'student', u.full_name || '', u.school_name || '', u.class_grade || '10',
-              u.phone || '', u.district || '', finalApproved, u.is_admin || 0,
+              u.phone || '', u.district || '', u.email || local?.email || '', finalApproved, u.is_admin || 0,
               u.referral_code || '', u.referral_count || 0, u.mp_exam_year || 2027,
               u.created_at || new Date().toISOString()
             );
@@ -1564,7 +1591,7 @@ async function startServer() {
       }
 
       const rows = db.prepare(`
-        SELECT id, username, role, full_name, school_name, class_grade, phone, district, approved, is_admin, referral_code, referral_count, mp_exam_year, created_at
+        SELECT id, username, role, full_name, school_name, class_grade, phone, district, email, approved, is_admin, referral_code, referral_count, mp_exam_year, created_at
         FROM users
         ORDER BY is_admin DESC, approved ASC, id DESC
       `).all();
@@ -1628,6 +1655,29 @@ async function startServer() {
       }
       db.prepare('UPDATE users SET approved = 0 WHERE id = ?').run(targetId);
       res.json({ success: true, message: 'User suspended successfully' });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.post('/api/users/delete', (req, res) => {
+    try {
+      const targetId = Number(req.body.id || req.body.userId);
+      if (!targetId) return res.status(400).json({ error: 'Valid user ID required' });
+      const target = db.prepare('SELECT phone, username FROM users WHERE id = ?').get(targetId) as any;
+      if (target && (target.phone === '7001257277' || target.username === 'admin')) {
+        return res.status(403).json({ error: 'হেড অ্যাডমিনকে ডিলিট করা যাবে না।' });
+      }
+      db.prepare('DELETE FROM users WHERE id = ?').run(targetId);
+      if (target && target.username) {
+        try {
+          const cdb = getCloudDb();
+          if (cdb) {
+            deleteDoc(doc(cdb, 'users', String(target.username))).catch(() => {});
+          }
+        } catch {}
+      }
+      res.json({ success: true, message: 'User deleted successfully' });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
     }
@@ -1983,6 +2033,98 @@ async function startServer() {
       deleteQuestionFromCloud(id);
       savePersistentSnapshot();
       res.json({ success: true, deleted_id: id });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.put('/api/questions/:id', (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      if (!id) return res.status(400).json({ error: 'Valid question id required' });
+      const {
+        question_text, question_text_en,
+        model_answer, model_answer_en,
+        marking_scheme, marking_scheme_en,
+        explanation, explanation_en,
+        marks, difficulty, q_type, topic_id
+      } = req.body;
+
+      const existing = db.prepare('SELECT * FROM questions WHERE id = ?').get(id) as any;
+      if (!existing) return res.status(404).json({ error: 'Question not found' });
+
+      const finalTopicId = topic_id !== undefined ? Number(topic_id) : existing.topic_id;
+      const finalQText = question_text !== undefined ? String(question_text).trim() : existing.question_text;
+      const finalQTextEn = question_text_en !== undefined ? String(question_text_en).trim() : existing.question_text_en;
+      const finalModelAns = model_answer !== undefined ? String(model_answer).trim() : existing.model_answer;
+      const finalModelAnsEn = model_answer_en !== undefined ? String(model_answer_en).trim() : existing.model_answer_en;
+      const finalMarking = marking_scheme !== undefined ? String(marking_scheme).trim() : existing.marking_scheme;
+      const finalMarkingEn = marking_scheme_en !== undefined ? String(marking_scheme_en).trim() : existing.marking_scheme_en;
+      const finalExp = explanation !== undefined ? String(explanation).trim() : existing.explanation;
+      const finalExpEn = explanation_en !== undefined ? String(explanation_en).trim() : existing.explanation_en;
+      const finalMarks = marks !== undefined ? Number(marks) : existing.marks;
+      const finalDiff = difficulty !== undefined ? String(difficulty) : existing.difficulty;
+      const finalQType = q_type !== undefined ? String(q_type) : existing.q_type;
+      const isDesc = finalMarks > 1 || finalQType === '2M' || finalQType === '3M' || finalQType === '5M' ? 1 : 0;
+
+      db.prepare(`
+        UPDATE questions SET
+          topic_id = ?, question_text = ?, question_text_en = ?,
+          model_answer = ?, model_answer_en = ?,
+          marking_scheme = ?, marking_scheme_en = ?,
+          explanation = ?, explanation_en = ?,
+          marks = ?, difficulty = ?, q_type = ?, is_descriptive = ?
+        WHERE id = ?
+      `).run(
+        finalTopicId, finalQText, finalQTextEn,
+        finalModelAns, finalModelAnsEn,
+        finalMarking, finalMarkingEn,
+        finalExp, finalExpEn,
+        finalMarks, finalDiff, finalQType, isDesc,
+        id
+      );
+
+      const updated = db.prepare('SELECT * FROM questions WHERE id = ?').get(id) as any;
+      pushQuestionToCloud(updated);
+      savePersistentSnapshot();
+      res.json({ success: true, question: updated });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.post('/api/questions/bulk_delete', (req, res) => {
+    try {
+      const { question_ids, topic_id, marks } = req.body;
+      let deletedCount = 0;
+
+      if (Array.isArray(question_ids) && question_ids.length > 0) {
+        for (const id of question_ids) {
+          db.prepare('DELETE FROM student_doubts WHERE question_id = ?').run(id);
+          db.prepare('DELETE FROM duplicate_log WHERE original_q_id = ? OR duplicate_q_id = ?').run(id, id);
+          db.prepare('DELETE FROM questions WHERE id = ?').run(id);
+          deleteQuestionFromCloud(id);
+          deletedCount++;
+        }
+      } else if (topic_id) {
+        let sql = 'SELECT id FROM questions WHERE topic_id = ?';
+        const params: any[] = [Number(topic_id)];
+        if (marks && marks !== 'all') {
+          sql += ' AND marks = ?';
+          params.push(Number(marks));
+        }
+        const ids = db.prepare(sql).all(...params) as { id: number }[];
+        for (const item of ids) {
+          db.prepare('DELETE FROM student_doubts WHERE question_id = ?').run(item.id);
+          db.prepare('DELETE FROM duplicate_log WHERE original_q_id = ? OR duplicate_q_id = ?').run(item.id, item.id);
+          db.prepare('DELETE FROM questions WHERE id = ?').run(item.id);
+          deleteQuestionFromCloud(item.id);
+          deletedCount++;
+        }
+      }
+
+      savePersistentSnapshot();
+      res.json({ success: true, deleted_count: deletedCount });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
     }
@@ -2593,6 +2735,92 @@ async function startServer() {
   app.delete('/api/mock_tests/:id', (req, res) => {
     try {
       db.prepare('DELETE FROM mock_tests WHERE id = ?').run(req.params.id);
+      res.json({ success: true });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // Mock Exam Access Requests & IP / Device Approval System
+  app.get('/api/mock_exam_requests', (req, res) => {
+    try {
+      const rows = db.prepare(`
+        SELECT id, mock_id, mock_code, student_username, student_name, student_phone,
+               ip_address, device_info, status, admin_note, approved_by, created_at, approved_at
+        FROM mock_exam_access_requests ORDER BY id DESC
+      `).all();
+      res.json(rows);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.get('/api/mock_exam_requests/my', (req, res) => {
+    try {
+      const username = String(req.query.username || '').trim();
+      if (!username) return res.json([]);
+      const rows = db.prepare(`
+        SELECT mock_id, mock_code, status, approved_at
+        FROM mock_exam_access_requests WHERE student_username = ?
+      `).all(username);
+      res.json(rows);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.post('/api/mock_exam_requests', (req, res) => {
+    try {
+      const { mock_id, mock_code, student_username, student_name, student_phone, device_info } = req.body;
+      const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
+      const cleanIp = Array.isArray(ip) ? ip[0] : String(ip).split(',')[0].trim();
+
+      const existing = db.prepare(`
+        SELECT id, status FROM mock_exam_access_requests
+        WHERE mock_id = ? AND student_username = ?
+        ORDER BY id DESC LIMIT 1
+      `).get(Number(mock_id), String(student_username)) as any;
+
+      if (existing) {
+        return res.json({ success: true, request_id: existing.id, status: existing.status });
+      }
+
+      const info = db.prepare(`
+        INSERT INTO mock_exam_access_requests
+        (mock_id, mock_code, student_username, student_name, student_phone, ip_address, device_info, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 'Pending')
+      `).run(Number(mock_id), String(mock_code), String(student_username), String(student_name || ''), String(student_phone || ''), cleanIp, String(device_info || 'Browser'));
+
+      res.json({ success: true, request_id: info.lastInsertRowid, status: 'Pending' });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.post('/api/mock_exam_requests/:id/approve', (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const adminName = String(req.body.approved_by || 'Shawon Kar (Head Admin)');
+      db.prepare(`
+        UPDATE mock_exam_access_requests SET
+          status = 'Approved', approved_by = ?, approved_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).run(adminName, id);
+      res.json({ success: true });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.post('/api/mock_exam_requests/:id/reject', (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const adminNote = String(req.body.admin_note || 'Rejected by Admin');
+      db.prepare(`
+        UPDATE mock_exam_access_requests SET
+          status = 'Rejected', admin_note = ?, approved_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).run(adminNote, id);
       res.json({ success: true });
     } catch (e: any) {
       res.status(500).json({ error: e.message });

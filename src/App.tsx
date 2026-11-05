@@ -10,7 +10,7 @@ import {
   ExternalLink, Search, Trash2, Eye, EyeOff, Lock, Phone, ArrowRight,
   GraduationCap, Check, MapPin, UserPlus, LogIn, KeyRound, Shield, Info,
   ShieldCheck, UserCheck, MessageSquare, Award, RefreshCw, Upload,
-  CheckSquare, Layers, Copy, Crown, X, Menu, Smartphone
+  CheckSquare, Layers, Copy, Crown, X, Menu, Smartphone, Mail
 } from 'lucide-react';
 
 import { PWAInstallPrompt } from './components/PWAInstallPrompt';
@@ -196,6 +196,7 @@ export default function App() {
   const [regMpYear, setRegMpYear] = useState('2027');
   const [regPhone, setRegPhone] = useState('');
   const [regDistrict, setRegDistrict] = useState('');
+  const [regEmail, setRegEmail] = useState('');
   const [regPassword, setRegPassword] = useState('');
   const [regRef, setRegRef] = useState('');
 
@@ -226,6 +227,32 @@ export default function App() {
 
   // In-Portal Secure Mock Reader Modal State
   const [readingMock, setReadingMock] = useState<any>(null);
+
+  // Mock Tests Language & Exam Permission Request States
+  const [mockLangFilter, setMockLangFilter] = useState<'all' | 'Bengali' | 'English'>('all');
+  const [myExamRequests, setMyExamRequests] = useState<Record<number, any>>({});
+  const [requestingMockId, setRequestingMockId] = useState<number | null>(null);
+  const [notificationPermGranted, setNotificationPermGranted] = useState<boolean>(() => {
+    return typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted';
+  });
+
+  const fetchMyExamRequests = async (uname?: string) => {
+    const target = uname || user?.username;
+    if (!target) return;
+    try {
+      const res = await fetch(`/api/mock_exam_requests/my?username=${target}`);
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        const map: Record<number, any> = {};
+        for (const item of data) {
+          map[item.mock_id] = item;
+        }
+        setMyExamRequests(map);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   // Restore persistent login session & read URL query params on mount
   useEffect(() => {
@@ -272,6 +299,7 @@ export default function App() {
       fetchUserPurchases();
       fetchNotifications();
       fetchMockTests();
+      fetchMyExamRequests(user.username);
       if (user.role === 'admin' || user.role === 'teacher') {
         fetchAllUsers();
       }
@@ -587,6 +615,7 @@ export default function App() {
           mp_exam_year: role === 'student' ? Number(regMpYear) : undefined,
           phone: regPhone,
           district: regDistrict,
+          email: regEmail,
           password: regPassword,
           referral_code: regRef
         })
@@ -603,6 +632,7 @@ export default function App() {
         setLoginUsername(regPhone);
         setLoginRole(role === 'student' ? 'Student' : 'Teacher');
         setRegPassword('');
+        setRegEmail('');
         setAlertMsg({
           type: 'success',
           text: role === 'student'
@@ -707,7 +737,6 @@ export default function App() {
     if (effectiveRole === 'student') {
       return [
         '🏠 Dashboard',
-        '🔒 Master 2/3/5M PDF Reader (DRM)',
         '📖 Practice Center',
         '❓ My Help / Doubt Requests',
         '📄 Mock Tests & Suggestions',
@@ -721,7 +750,6 @@ export default function App() {
     } else if (effectiveRole === 'teacher') {
       return [
         '📥 Assigned Student Doubts',
-        '🔒 Master 2/3/5M PDF Reader (DRM)',
         '📖 Question Bank Manager',
         '📝 Check Assigned Answer Sheets',
         '📤 Send Suggestions to Admin',
@@ -735,10 +763,9 @@ export default function App() {
     } else {
       return [
         '📢 Send Student Notifications',
-        '🛡️ PDF Security & DRM Approvals',
-        '🔒 Master 2/3/5M PDF Reader (DRM)',
         '🎟️ Promo Code Requests',
         '🛡️ User Approvals',
+        '🛡️ Mock Exam & Device Approvals',
         '📄 School & Teacher Prospectus PDF',
         '❓ Student Doubt Assignment Hub',
         '📖 Question Bank Manager',
@@ -1618,8 +1645,8 @@ export default function App() {
                       </h4>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
-                      <div className="md:col-span-1">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                      <div>
                         <label className="block text-xs font-bold text-blue-950 mb-1">
                           🎓 {T("মাধ্যমিক পরীক্ষার সাল *", "Year of MP Exam *")}
                         </label>
@@ -1639,7 +1666,7 @@ export default function App() {
                         </span>
                       </div>
 
-                      <div className="md:col-span-1">
+                      <div>
                         <label className="block text-xs font-bold text-slate-700 mb-1">
                           {T("বর্তমান শ্রেণি (Class) *", "Class *")}
                         </label>
@@ -1653,7 +1680,7 @@ export default function App() {
                         </select>
                       </div>
 
-                      <div className="md:col-span-1">
+                      <div>
                         <label className="block text-xs font-bold text-slate-700 mb-1">
                           {T("মোবাইল নম্বর (User ID) *", "Phone (User ID) *")}
                         </label>
@@ -1673,6 +1700,27 @@ export default function App() {
                         </div>
                         <span className="text-[10px] text-slate-500 block mt-1">
                           {T("১০ সংখ্যার ফোন নম্বর (এটিই লগইন আইডি)", "10-digit number (used as login ID)")}
+                        </span>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1">
+                          {T("ইমেল আইডি (Email ID - ঐচ্ছিক)", "Email ID (Optional)")}
+                        </label>
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                            <Mail className="w-4 h-4" />
+                          </div>
+                          <input
+                            type="email"
+                            value={regEmail}
+                            onChange={e => setRegEmail(e.target.value)}
+                            placeholder="student@example.com"
+                            className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 font-medium focus:bg-white focus:border-blue-600 outline-none text-sm"
+                          />
+                        </div>
+                        <span className="text-[10px] text-slate-500 block mt-1">
+                          {T("আপডেট ও গুরুত্বপূর্ণ নোটিফিকেশনের জন্য", "For updates & notifications")}
                         </span>
                       </div>
                     </div>
@@ -1838,7 +1886,7 @@ export default function App() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
                       <div>
                         <label className="block text-xs font-bold text-slate-700 mb-1">
                           {T("যোগাযোগ ফোন নম্বর (User ID) *", "Phone Number (User ID) *")}
@@ -1855,6 +1903,24 @@ export default function App() {
                             onChange={e => setRegPhone(e.target.value.replace(/[^0-9]/g, '').slice(0, 10))}
                             placeholder="9123456780"
                             className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 font-bold focus:bg-white focus:border-blue-600 outline-none text-sm"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1">
+                          {T("ইমেল আইডি (Email ID - ঐচ্ছিক)", "Email ID (Optional)")}
+                        </label>
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                            <Mail className="w-4 h-4" />
+                          </div>
+                          <input
+                            type="email"
+                            value={regEmail}
+                            onChange={e => setRegEmail(e.target.value)}
+                            placeholder="teacher@example.com"
+                            className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 font-medium focus:bg-white focus:border-blue-600 outline-none text-sm"
                           />
                         </div>
                       </div>
@@ -1984,6 +2050,53 @@ export default function App() {
           /* LOGGED IN INTERFACE VIEWS                                            */
           /* ==================================================================== */
           <div className="space-y-6">
+            {/* PWA & Mobile Push Notifications Activation Banner */}
+            {!notificationPermGranted && (
+              <div className="bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-800 text-white p-3.5 sm:p-4 rounded-2xl shadow-md flex flex-wrap items-center justify-between gap-3 border border-indigo-400/30">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-xl shrink-0">
+                    🔔
+                  </div>
+                  <div>
+                    <h4 className="font-extrabold text-sm sm:text-base leading-tight">
+                      {T("পরীক্ষার গুরুত্বপূর্ণ আপডেট ও নোটিফিকেশন চালু করুন", "Enable Important Exam Updates & Alerts")}
+                    </h4>
+                    <p className="text-xs text-indigo-100 mt-0.5">
+                      {T("সাজেশন প্রকাশ, খাতা দেখার রেজাল্ট ও জরুরি নোটিশ অ্যাপ বন্ধ থাকলেও সরাসরি আপনার ডিভাইসে পেতে নোটিফিকেশন পারমিশন দিন।",
+                         "Receive instant notifications for suggestions, evaluated answer sheets, and exam notices on your device.")}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if ('Notification' in window) {
+                        Notification.requestPermission().then(perm => {
+                          if (perm === 'granted') {
+                            setNotificationPermGranted(true);
+                            try {
+                              new Notification('WBBSE Geography Portal & Digital Lab', {
+                                body: '🎉 অভিনন্দন! আপনি সফলভাবে গুরুত্বপূর্ণ পরীক্ষার নোটিফিকেশন চালু করেছেন।',
+                                icon: '/icon.svg'
+                              });
+                            } catch (_) {}
+                            alert('✅ নোটিফিকেশন সফলভাবে চালু করা হয়েছে!');
+                          } else {
+                            alert('নোটিফিকেশন পারমিশন পাওয়া যায়নি। ব্রাউজারের সাইট সেটিংস থেকে পারমিশন অ্যালাউ করুন।');
+                          }
+                        });
+                      } else {
+                        alert('আপনার ব্রাউজার পুশ নোটিফিকেশন সমর্থন করে না।');
+                      }
+                    }}
+                    className="st-btn bg-white hover:bg-slate-100 text-indigo-950 font-extrabold text-xs py-2 px-4 rounded-xl shadow-xs transition cursor-pointer"
+                  >
+                    🔔 {T("নোটিফিকেশন অন করুন", "Enable Notifications")}
+                  </button>
+                </div>
+              </div>
+            )}
             {/* ------------------------------------------------------------------ */}
             {/* SECURE MASTER 2/3/5M PDF DRM VIEWER                                */}
             {/* ------------------------------------------------------------------ */}
@@ -2095,28 +2208,28 @@ export default function App() {
                   </div>
                 )}
 
-                {/* Master PDF DRM Feature Banner */}
+                {/* Practice Center Feature Banner */}
                 <div className="bg-gradient-to-r from-blue-700 via-indigo-700 to-blue-800 text-white p-5 rounded-2xl shadow-md mb-6 border border-blue-500/30 flex flex-col sm:flex-row items-center justify-between gap-4">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <ShieldCheck className="w-5 h-5 text-amber-300" />
+                      <BookOpen className="w-5 h-5 text-amber-300" />
                       <h3 className="font-extrabold text-base sm:text-lg">
-                        {T("🔒 মাধ্যমিক ২, ৩ ও ৫ নম্বরের সুরক্ষিত মাস্টার PDF রিডার", "🔒 Master 2, 3 & 5 Marks Secure DRM Reader")}
+                        {T("📖 মাধ্যমিক ২, ৩ ও ৫ নম্বরের সম্পূর্ণ উত্তরসহ অধ্যায়ভিত্তিক প্রস্তুতি", "📖 Chapter-wise 2, 3 & 5 Marks Questions with Answers")}
                       </h3>
                     </div>
                     <p className="text-xs text-blue-100 max-w-xl">
                       {T(
-                        "চিত্রসহ ৫ নম্বরের বড় উত্তর, ৩ নম্বরের ব্যাখ্যামূলক ছক এবং ২ নম্বরের টু-দ্য-পয়েন্ট সংজ্ঞা সম্বলিত কপিরাইট সুরক্ষিত ডিজিটাল উত্তরমালা।",
-                        "Complete diagram-backed 5M answers, 3M analytical tables, and 2M definitions with dynamic watermarked DRM viewing."
+                        "চিত্রসহ ৫ নম্বরের বড় উত্তর, ৩ নম্বরের ব্যাখ্যামূলক ছক এবং ২ নম্বরের টু-দ্য-পয়েন্ট মডেল উত্তর সরাসরি প্রতিটি প্রশ্নের নিচে দেওয়া রয়েছে।",
+                        "Complete diagram-backed 5M answers, 3M analytical tables, and 2M definitions rendered directly beneath each question."
                       )}
                     </p>
                   </div>
                   <button
                     type="button"
-                    onClick={() => setActiveNav('🔒 Master 2/3/5M PDF Reader (DRM)')}
+                    onClick={() => setActiveNav('📖 Practice Center')}
                     className="px-4 py-2.5 rounded-xl bg-white text-blue-900 hover:bg-blue-50 font-extrabold text-xs sm:text-sm shadow-md transition shrink-0 cursor-pointer flex items-center gap-2"
                   >
-                    <span>{T("📖 মাস্টার PDF খুলুন", "Open Master PDF Reader")}</span>
+                    <span>{T("📖 অনুশীলন ও উত্তর দেখুন", "Open Practice Center")}</span>
                     <span>→</span>
                   </button>
                 </div>
@@ -2286,12 +2399,7 @@ export default function App() {
                         isPaid={isPaid}
                         settings={settings}
                         setActiveNav={setActiveNav}
-                        onOpenDrmReader={(tId: number, mType: string, tier: 'paid' | 'free') => {
-                          setActiveChapterForDrm(Number(tId) || 1);
-                          setActiveMarksForDrm((mType || '5m').toLowerCase() as any);
-                          setActiveTierForDrm(tier);
-                          setActiveNav('🔒 Master 2/3/5M PDF Reader (DRM)');
-                        }}
+                        fetchQuestions={() => fetchQuestions(selectedTopicId)}
                       />
                     </div>
                   );
@@ -2354,57 +2462,209 @@ export default function App() {
             {/* MOCK TESTS & SUGGESTIONS                                           */}
             {/* ------------------------------------------------------------------ */}
             {activeNav === '📄 Mock Tests & Suggestions' && (
-              <div>
-                <h2 className="text-2xl font-bold text-slate-800 mb-4">{T("📄 Mock Tests & Suggestions", "📄 Mock Tests & Suggestions")}</h2>
-                {mockTests.length === 0 ? (
-                  <div className="p-8 bg-white border border-slate-200 rounded-xl text-center text-slate-500">
-                    {T("No mock tests published yet.", "No mock tests published yet.")}
+              <div className="space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2">
+                      <span>📄</span>
+                      <span>{T("মক টেস্ট ও অধ্যায়ভিত্তিক সাজেশন", "Mock Tests & Suggestions")}</span>
+                    </h2>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      {T("মাধ্যমিক ভূগোল পরীক্ষার জন্য পর্ষদ নির্দেশিত পূর্ণাঙ্গ প্রশ্নপত্র। পরীক্ষা দেওয়ার সময় ডিভাইস অনুমোদনের পর সরাসরি সুরক্ষিত পোর্টালে উত্তরপত্র পূরণ করুন।",
+                         "Official WBBSE Madhyamik Geography mock test papers. Request device approval to open protected exam papers.")}
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowWhatsAppModal(true)}
+                    className="st-btn bg-emerald-600 hover:bg-emerald-700 text-white text-xs py-2 px-4 rounded-xl font-bold flex items-center gap-2 shrink-0 cursor-pointer shadow-xs"
+                  >
+                    <span>💬</span>
+                    <span>{T("WhatsApp চ্যানেলে সাজেশন পান", "Join WhatsApp Channel")}</span>
+                  </button>
+                </div>
+
+                {/* Medium / Language Filter Tabs */}
+                <div className="flex items-center gap-2 p-1.5 bg-slate-200/80 rounded-2xl w-fit">
+                  <button
+                    type="button"
+                    onClick={() => setMockLangFilter('all')}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+                      mockLangFilter === 'all'
+                        ? 'bg-white text-blue-700 shadow-sm'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    {T("সব প্রশ্নপত্র (All)", "All Papers")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMockLangFilter('Bengali')}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                      mockLangFilter === 'Bengali'
+                        ? 'bg-white text-emerald-700 shadow-sm'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <span>🇮🇳</span>
+                    <span>বাংলা মাধ্যম</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMockLangFilter('English')}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                      mockLangFilter === 'English'
+                        ? 'bg-white text-indigo-700 shadow-sm'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <span>🇬🇧</span>
+                    <span>English Medium</span>
+                  </button>
+                </div>
+
+                {/* Notice regarding exam device password protection */}
+                <div className="p-4 bg-blue-50/80 border border-blue-200 rounded-2xl text-xs text-blue-900 flex items-start gap-3">
+                  <span className="text-xl shrink-0">🔐</span>
+                  <div className="leading-relaxed">
+                    <strong>{T("পরীক্ষা ও প্রশ্নপত্র সুরক্ষা নীতি (Exam Security & Device Lock):", "Exam Security & Device Lock Policy:")}</strong>
+                    <p className="mt-0.5 text-blue-800">
+                      {T("প্রশ্নপত্র ফাঁসরোধে পরীক্ষার পূর্বে আপনার ডিভাইস ও আইপি থেকে স্যারের কাছে অনুমোদনের অনুরোধ পাঠানো হয়। অনুমোদন সম্পন্ন হলে সরাসরি পোর্টালে সুরক্ষিত প্রশ্নপত্র খুলবে। আপনার সুরক্ষিত পাসওয়ার্ড: আপনার রেজিস্টার্ড মোবাইল নম্বর।",
+                         "To maintain academic integrity, exam papers require device authorization. Once Shawon Sir approves, the paper unlocks securely in the portal using your registered phone as password.")}
+                    </p>
+                  </div>
+                </div>
+
+                {mockTests.filter(m => mockLangFilter === 'all' || (m.language || 'Bengali') === mockLangFilter).length === 0 ? (
+                  <div className="p-12 bg-white border border-slate-200 rounded-2xl text-center text-slate-500">
+                    <p className="font-bold text-slate-700">{T("এই বিভাগে বর্তমানে কোনো মক টেস্ট প্রকাশিত নেই।", "No mock tests published in this category yet.")}</p>
+                    <p className="text-xs text-slate-400 mt-1">{T("অন্যান্য মাধ্যম বা 'সব প্রশ্নপত্র' ট্যাবে দেখুন।", "Check other language tabs or All.")}</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {mockTests.map(m => {
-                      const unlocked = hasMockAccess(m.test_type, m.id);
-                      return (
-                        <div key={m.id} className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col justify-between">
-                          <div>
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
-                                {m.test_type}
-                              </span>
-                              <span className="text-xs text-slate-500">{m.timestamp?.split(' ')[0]}</span>
-                            </div>
-                            <h3 className="text-lg font-black text-slate-900 mb-1">{m.code_num}</h3>
-                            <p className="text-xs text-slate-500 mb-3">Uploader: {m.uploader} | ₹{m.price || 0}</p>
-                          </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    {mockTests
+                      .filter(m => mockLangFilter === 'all' || (m.language || 'Bengali') === mockLangFilter)
+                      .map(m => {
+                        const unlocked = hasMockAccess(m.test_type, m.id);
+                        const reqStatus = myExamRequests[m.id]?.status;
 
-                          <div className="mt-4">
-                            {unlocked ? (
-                              <div className="p-3 bg-emerald-50 border border-emerald-300 rounded-lg flex items-center justify-between">
-                                <span className="text-xs font-bold text-emerald-800">✅ {T("Unlocked!", "Unlocked!")}</span>
-                                <button
-                                  onClick={() => downloadTextFile(m.file_name || `${m.code_num}.txt`, m.file_data || `WBBSE Mock Test Paper: ${m.code_num}`)}
-                                  className="st-btn text-xs py-1.5 px-3 flex items-center gap-1"
-                                >
-                                  <Download className="w-3.5 h-3.5" /> 📥 {m.code_num}
-                                </button>
+                        return (
+                          <div key={m.id} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between hover:border-indigo-200 hover:shadow-sm transition">
+                            <div>
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-[11px] font-black text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-200">
+                                  {m.test_type}
+                                </span>
+                                <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+                                  {m.language === 'English' ? '🇬🇧 English Medium' : '🇮🇳 বাংলা মাধ্যম'}
+                                </span>
                               </div>
-                            ) : (
-                              <div className="lock-box">
-                                <p className="text-sm font-bold mb-2">
-                                  🔒 {T(`₹${m.price || 0} পেমেন্ট করে আনলক করুন`, `Pay ₹${m.price || 0} to unlock`)}
-                                </p>
-                                <button
-                                  onClick={() => setActiveNav('💳 Pricing & Payment')}
-                                  className="st-btn bg-amber-600 hover:bg-amber-700 text-xs py-1.5 px-3"
-                                >
-                                  💳 {T("Go to Payment", "Go to Payment")}
-                                </button>
-                              </div>
-                            )}
+                              <h3 className="text-lg font-black text-slate-900 mt-1">{m.code_num}</h3>
+                              <p className="text-xs text-slate-500 mt-1">
+                                {m.file_name} • {m.uploader || 'Shawon Kar'} • {m.price ? `₹${m.price}` : 'Free'}
+                              </p>
+                            </div>
+
+                            <div className="mt-5 pt-4 border-t border-slate-100">
+                              {unlocked ? (
+                                <div className="space-y-2.5">
+                                  {reqStatus === 'Approved' ? (
+                                    <div className="p-3.5 bg-emerald-50 border border-emerald-300 rounded-xl space-y-2">
+                                      <div className="flex items-center justify-between text-xs font-bold text-emerald-950">
+                                        <span>✅ {T("ডিভাইস ও পরীক্ষা অনুমোদিত!", "Device & Exam Approved!")}</span>
+                                        <span className="text-[10px] bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded-full font-black">
+                                          Password Protected
+                                        </span>
+                                      </div>
+                                      <button
+                                        type="button"
+                                        onClick={() => setReadingMock(m)}
+                                        className="st-btn bg-indigo-600 hover:bg-indigo-700 text-white text-xs py-2.5 px-4 w-full flex items-center justify-center gap-2 rounded-xl font-black shadow-xs cursor-pointer"
+                                      >
+                                        <Eye className="w-4 h-4" />
+                                        <span>{T("👁️ সুরক্ষিত পোর্টালে প্রশ্নপত্র পড়ুন ও পরীক্ষা দিন", "Read Paper & Start Exam")}</span>
+                                      </button>
+                                      <div className="text-[11px] text-slate-600 bg-white p-2 rounded-lg border border-emerald-200 flex items-center justify-between">
+                                        <span>🔐 <strong>{T("পাসওয়ার্ড:", "Password:")}</strong> {user.phone || user.username}</span>
+                                        <span className="text-[10px] text-slate-400">আপনার মোবাইল নম্বর</span>
+                                      </div>
+                                    </div>
+                                  ) : reqStatus === 'Pending' ? (
+                                    <div className="p-4 bg-amber-50 border border-amber-300 rounded-xl text-amber-900 space-y-1.5">
+                                      <div className="flex items-center gap-2 text-xs font-black">
+                                        <span className="animate-spin text-base">⏳</span>
+                                        <span>{T("অ্যাডমিন অনুমোদনের অপেক্ষায়...", "Admin Approval Pending...")}</span>
+                                      </div>
+                                      <p className="text-[11px] text-amber-800 leading-relaxed">
+                                        {T("আপনার ডিভাইস ও আইপি অ্যাড্রেস থেকে পরীক্ষার অনুমোদন শাওন স্যারের প্যানেলে জমা হয়েছে। অনুমোদিত হলেই প্রশ্নপত্র খুলবে।",
+                                           "Your device authorization request is submitted. It will unlock immediately upon teacher approval.")}
+                                      </p>
+                                    </div>
+                                  ) : reqStatus === 'Rejected' ? (
+                                    <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-800 font-bold">
+                                      ❌ {T("পরীক্ষার অনুরোধ স্থগিত করা হয়েছে। হেড অ্যাডমিনের সাথে যোগাযোগ করুন (7001257277)।", "Exam request suspended. Contact Head Admin.")}
+                                    </div>
+                                  ) : (
+                                    <div className="p-3.5 bg-blue-50/70 border border-blue-200 rounded-xl space-y-2.5">
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-xs font-black text-blue-900">👑 {T("প্যাকেজে আনলকড", "Unlocked")}</span>
+                                        <span className="text-[10px] text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full font-bold">Ready</span>
+                                      </div>
+                                      <button
+                                        type="button"
+                                        disabled={requestingMockId === m.id}
+                                        onClick={async () => {
+                                          setRequestingMockId(m.id);
+                                          try {
+                                            const res = await fetch('/api/mock_exam_requests', {
+                                              method: 'POST',
+                                              headers: { 'Content-Type': 'application/json' },
+                                              body: JSON.stringify({
+                                                mock_id: m.id,
+                                                mock_code: m.code_num,
+                                                student_username: user.username,
+                                                student_name: user.full_name,
+                                                student_phone: user.phone,
+                                                device_info: `${navigator.platform || 'Device'} (${navigator.userAgent.slice(0, 45)})`
+                                              })
+                                            });
+                                            const data = await res.json();
+                                            if (data.success) {
+                                              alert('✅ পরীক্ষার অনুরোধ ও ডিভাইসের তথ্য প্রধান অ্যাডমিনের কাছে সফলভাবে জমা হয়েছে!');
+                                              fetchMyExamRequests();
+                                            }
+                                          } catch (e: any) {
+                                            alert(e.message);
+                                          } finally {
+                                            setRequestingMockId(null);
+                                          }
+                                        }}
+                                        className="st-btn bg-emerald-600 hover:bg-emerald-700 text-white text-xs py-2 px-3.5 w-full flex items-center justify-center gap-1.5 rounded-xl font-black shadow-xs cursor-pointer"
+                                      >
+                                        <span>📝</span>
+                                        <span>{requestingMockId === m.id ? 'অনুরোধ পাঠানো হচ্ছে...' : T("পরীক্ষা শুরু ও ডিভাইস অনুমোদন অনুরোধ", "Request Exam & Device Approval")}</span>
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <div className="lock-box p-4 bg-slate-50 border border-slate-200 rounded-xl text-center space-y-2">
+                                  <p className="text-xs font-bold text-slate-800">
+                                    🔒 {T(`₹${m.price || 0} পেমেন্ট করে আনলক করুন`, `Pay ₹${m.price || 0} to unlock`)}
+                                  </p>
+                                  <button
+                                    onClick={() => setActiveNav('💳 Pricing & Payment')}
+                                    className="st-btn bg-amber-600 hover:bg-amber-700 text-white text-xs py-2 px-4 rounded-xl font-bold w-full cursor-pointer shadow-xs"
+                                  >
+                                    💳 {T("পেমেন্ট করে আনলক করুন", "Go to Payment")}
+                                  </button>
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
                   </div>
                 )}
               </div>
@@ -2622,6 +2882,13 @@ export default function App() {
             )}
 
             {/* ------------------------------------------------------------------ */}
+            {/* ADMIN: MOCK EXAM & DEVICE APPROVALS                                */}
+            {/* ------------------------------------------------------------------ */}
+            {activeNav === '🛡️ Mock Exam & Device Approvals' && (
+              <AdminMockExamApprovalsSection T={T} user={user} />
+            )}
+
+            {/* ------------------------------------------------------------------ */}
             {/* ADMIN: TEACHER SUBMISSIONS REVIEW                                  */}
             {/* ------------------------------------------------------------------ */}
             {activeNav === '📤 Teacher Submissions Review' && (
@@ -2787,6 +3054,22 @@ export default function App() {
         openMobileMenu={() => setMobileMenuOpen(true)}
         language={language}
       />
+
+      {/* Official WhatsApp Channel Modal */}
+      <WhatsAppChannelModal
+        isOpen={showWhatsAppModal}
+        onClose={() => setShowWhatsAppModal(false)}
+        language={language}
+      />
+
+      {/* In-Portal Protected Mock Exam Reader */}
+      <SecureMockReaderModal
+        mockTest={readingMock}
+        user={user}
+        isOpen={Boolean(readingMock)}
+        onClose={() => setReadingMock(null)}
+        language={language}
+      />
     </div>
   );
 }
@@ -2800,7 +3083,8 @@ function QuestionTabs({
   mcqTotal, saqTotal, q2Total, q3Total, q5Total,
   selectedAnswers, setSelectedAnswers, onAskDoubt, downloadTextFile,
   T, getQText, language,
-  user, effectiveRole, isPaid, settings, setActiveNav
+  user, effectiveRole, isPaid, settings, setActiveNav,
+  fetchQuestions
 }: any) {
   const [activeTab, setActiveTab] = useState<'mcq' | 'saq' | '2m' | '3m' | '5m'>('mcq');
   const [openAnswers, setOpenAnswers] = useState<Record<number, boolean>>({});
@@ -3026,22 +3310,13 @@ function QuestionTabs({
             badgeColor="bg-purple-600"
             borderLeftColor="#7c3aed"
             onAskDoubt={onAskDoubt}
-            downloadTextFile={downloadTextFile}
             T={T}
             getQText={getQText}
             language={language}
-          />
-          <ChapterAnswerSheetsSection
-            topicId={topicId}
-            marksType="2m"
-            isPaid={isPaid}
             user={user}
             effectiveRole={effectiveRole}
-            fullPrice={fullPrice}
-            setActiveNav={setActiveNav}
-            T={T}
-            downloadTextFile={downloadTextFile}
-            language={language}
+            isPaid={isPaid}
+            fetchQuestions={fetchQuestions}
           />
         </div>
       )}
@@ -3055,22 +3330,13 @@ function QuestionTabs({
             badgeColor="bg-emerald-600"
             borderLeftColor="#16a34a"
             onAskDoubt={onAskDoubt}
-            downloadTextFile={downloadTextFile}
             T={T}
             getQText={getQText}
             language={language}
-          />
-          <ChapterAnswerSheetsSection
-            topicId={topicId}
-            marksType="3m"
-            isPaid={isPaid}
             user={user}
             effectiveRole={effectiveRole}
-            fullPrice={fullPrice}
-            setActiveNav={setActiveNav}
-            T={T}
-            downloadTextFile={downloadTextFile}
-            language={language}
+            isPaid={isPaid}
+            fetchQuestions={fetchQuestions}
           />
         </div>
       )}
@@ -3084,22 +3350,13 @@ function QuestionTabs({
             badgeColor="bg-red-600"
             borderLeftColor="#dc2626"
             onAskDoubt={onAskDoubt}
-            downloadTextFile={downloadTextFile}
             T={T}
             getQText={getQText}
             language={language}
-          />
-          <ChapterAnswerSheetsSection
-            topicId={topicId}
-            marksType="5m"
-            isPaid={isPaid}
             user={user}
             effectiveRole={effectiveRole}
-            fullPrice={fullPrice}
-            setActiveNav={setActiveNav}
-            T={T}
-            downloadTextFile={downloadTextFile}
-            language={language}
+            isPaid={isPaid}
+            fetchQuestions={fetchQuestions}
           />
         </div>
       )}
@@ -3108,84 +3365,288 @@ function QuestionTabs({
 }
 
 function DescriptiveList({
-  questions, marks, badgeColor, borderLeftColor, onAskDoubt, downloadTextFile, T, getQText, language
+  questions, marks, badgeColor, borderLeftColor, onAskDoubt, T, getQText, language,
+  user, effectiveRole, isPaid, fetchQuestions
 }: any) {
   const [openOutline, setOpenOutline] = useState<Record<number, boolean>>({});
+  const [editingQuestion, setEditingQuestion] = useState<any | null>(null);
+  const [editModelAns, setEditModelAns] = useState('');
+  const [editModelAnsEn, setEditModelAnsEn] = useState('');
+  const [editMarking, setEditMarking] = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  const canManage = effectiveRole === 'admin' || effectiveRole === 'teacher';
+
+  const handleStartEdit = (q: any) => {
+    setEditingQuestion(q);
+    setEditModelAns(q.model_answer || '');
+    setEditModelAnsEn(q.model_answer_en || '');
+    setEditMarking(q.marking_scheme || '');
+  };
+
+  const handleSaveAnswer = async () => {
+    if (!editingQuestion) return;
+    setSavingEdit(true);
+    try {
+      const res = await fetch(`/api/questions/${editingQuestion.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model_answer: editModelAns,
+          model_answer_en: editModelAnsEn,
+          marking_scheme: editMarking
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert('✅ মডেল উত্তর সফলভাবে আপডেট ও সেভ হয়েছে!');
+        setEditingQuestion(null);
+        if (fetchQuestions) fetchQuestions();
+      } else {
+        alert('Error: ' + data.error);
+      }
+    } catch (e: any) {
+      alert(e.message);
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const handleDeleteQuestion = async (qId: number, num: number) => {
+    if (!window.confirm(`আপনি কি নিশ্চিত যে প্রশ্ন #${num} ডিলিট করতে চান?`)) return;
+    try {
+      const res = await fetch(`/api/questions/${qId}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        alert('🗑️ প্রশ্নটি সফলভাবে ডিলিট করা হয়েছে।');
+        if (fetchQuestions) fetchQuestions();
+      }
+    } catch (e: any) {
+      alert(e.message);
+    }
+  };
 
   if (questions.length === 0) {
-    return <p className="p-6 bg-white rounded-xl text-center text-slate-500">No {marks} Marks questions in this chapter.</p>;
+    return (
+      <div className="p-8 bg-white rounded-2xl border border-slate-200 text-center">
+        <p className="text-slate-500 font-medium">
+          {T(`এই অধ্যায়ে কোনো ${marks} নম্বরের প্রশ্ন নেই।`, `No ${marks} Marks questions in this chapter.`)}
+        </p>
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
+      {/* Answer Edit Modal for Admin & Teacher */}
+      {editingQuestion && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b pb-3">
+              <div>
+                <span className="text-xs font-black uppercase text-indigo-600 bg-indigo-50 px-2.5 py-0.5 rounded-full">
+                  #{editingQuestion.id} • {marks} Marks
+                </span>
+                <h3 className="text-base font-extrabold text-slate-900 mt-1">
+                  ✏️ মডেল উত্তর সংযোজন ও সম্পাদনা (Add / Edit Model Answer)
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingQuestion(null)}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-3 bg-slate-50 rounded-xl text-xs font-bold text-slate-800">
+              <span className="text-indigo-700">প্রশ্ন:</span> {editingQuestion.question_text}
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-slate-700 block mb-1">
+                🇮🇳 বাংলা মডেল উত্তর (Point-wise Bengali Model Answer):
+              </label>
+              <textarea
+                rows={5}
+                value={editModelAns}
+                onChange={e => setEditModelAns(e.target.value)}
+                placeholder="এখানে সম্পূর্ণ পয়েন্ট-ভিত্তিক বাংলা উত্তর লিখুন..."
+                className="st-input w-full text-xs sm:text-sm font-sans"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-slate-700 block mb-1">
+                🇬🇧 English Model Answer (ঐচ্ছিক / Optional):
+              </label>
+              <textarea
+                rows={4}
+                value={editModelAnsEn}
+                onChange={e => setEditModelAnsEn(e.target.value)}
+                placeholder="Enter complete English model answer..."
+                className="st-input w-full text-xs sm:text-sm font-sans"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-slate-700 block mb-1">
+                ⚖️ নম্বর বিভাজন ও চিত্র নির্দেশিকা (Marking Scheme & Diagrams):
+              </label>
+              <input
+                type="text"
+                value={editMarking}
+                onChange={e => setEditMarking(e.target.value)}
+                placeholder="যেমন: সংজ্ঞা ১ + বৈশিষ্ট্য ২, চিত্র আবশ্যক..."
+                className="st-input w-full text-xs"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t">
+              <button
+                type="button"
+                onClick={() => setEditingQuestion(null)}
+                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
+              >
+                বাতিল
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveAnswer}
+                disabled={savingEdit}
+                className="st-btn bg-emerald-600 hover:bg-emerald-700 text-white text-xs py-2 px-5 font-bold rounded-xl shadow-xs"
+              >
+                {savingEdit ? 'সংরক্ষণ হচ্ছে...' : '💾 সেভ ও আপডেট করুন'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {questions.map((q: any, idx: number) => {
         const qText = getQText(q.question_text, q.question_text_en);
-        const modelAns = getQText(q.model_answer, q.model_answer_en);
-        const marking = getQText(q.marking_scheme, q.marking_scheme_en);
-        const isOpen = openOutline[q.id];
+        const modelAns = getQText(q.model_answer, q.model_answer_en) || q.model_answer || q.model_answer_en;
+        const marking = getQText(q.marking_scheme, q.marking_scheme_en) || q.marking_scheme;
+        const isOpen = openOutline[q.id] !== undefined ? openOutline[q.id] : (isPaid || idx < 3);
 
         return (
-          <div key={q.id} className="card-broad" style={{ borderLeftColor }}>
-            <div className="flex items-center justify-between mb-2">
-              <span className={`${badgeColor} text-white text-xs font-bold px-2 py-0.5 rounded`}>
-                {marks} Marks
-              </span>
-              <span className="text-xs text-slate-400">#Q{idx + 1}</span>
+          <div key={q.id} className="card-broad bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-3" style={{ borderLeftColor, borderLeftWidth: '5px' }}>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className={`${badgeColor} text-white text-xs font-bold px-2.5 py-0.5 rounded-full`}>
+                  {marks} Marks
+                </span>
+                <span className="text-xs font-bold text-slate-400">#Q{idx + 1}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                {canManage && (
+                  <button
+                    type="button"
+                    onClick={() => handleStartEdit(q)}
+                    className="text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-2.5 py-1 rounded-lg transition flex items-center gap-1 cursor-pointer"
+                  >
+                    ✏️ {T("উত্তর লিখুন / এডিট", "Edit/Add Answer")}
+                  </button>
+                )}
+                {canManage && (
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteQuestion(q.id, idx + 1)}
+                    className="text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 px-2.5 py-1 rounded-lg transition flex items-center gap-1 cursor-pointer"
+                  >
+                    🗑️ {T("ডিলিট", "Delete")}
+                  </button>
+                )}
+              </div>
             </div>
-            <h4 className="font-bold text-slate-900 text-base mb-2">
+
+            <h4 className="font-extrabold text-slate-900 text-base leading-snug">
               Q{idx + 1}. {qText}
             </h4>
 
-            {/* Inline Model Outline if entered by teacher */}
-            {modelAns && (
-              <div className="mt-3">
-                <button
-                  type="button"
-                  onClick={() => setOpenOutline(prev => ({ ...prev, [q.id]: !prev[q.id] }))}
-                  className="text-xs font-bold text-indigo-700 hover:text-indigo-900 flex items-center gap-1.5 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-3 py-1.5 rounded-lg transition"
-                >
-                  <Eye className="w-3.5 h-3.5" />
-                  {isOpen ? T("উত্তর রূপরেখা লুকান", "Hide Answer Outline") : T("👁️ মডেল উত্তর / রূপরেখা দেখুন", "👁️ View Model Outline")}
-                </button>
-                {isOpen && (
-                  <div className="mt-2.5 p-3.5 bg-indigo-50/80 rounded-xl border border-indigo-200 text-sm shadow-xs animate-in fade-in duration-200 space-y-2">
-                    <div className="flex items-center gap-1.5 font-bold text-indigo-950">
-                      <span>📝</span>
-                      <span>{T("মডেল উত্তর রূপরেখা (Model Outline):", "Model Solution Outline:")}</span>
+            {/* MODEL ANSWER DIRECTLY BENEATH QUESTION */}
+            <div className="pt-2">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-extrabold text-slate-800 flex items-center gap-1.5">
+                  <span className="p-1 bg-amber-100 text-amber-800 rounded">📝</span>
+                  <span>{T(`${marks} নম্বরের অফিসিয়াল পয়েন্ট-ভিত্তিক মডেল উত্তর:`, `Official ${marks}M Model Answer:`)}</span>
+                </span>
+                {modelAns && (
+                  <button
+                    type="button"
+                    onClick={() => setOpenOutline(prev => ({ ...prev, [q.id]: !isOpen }))}
+                    className="text-[11px] font-bold text-slate-600 hover:text-slate-900 underline cursor-pointer"
+                  >
+                    {isOpen ? T("সংকোচন করুন", "Collapse") : T("প্রসারিত করুন", "Expand")}
+                  </button>
+                )}
+              </div>
+
+              {modelAns ? (
+                isOpen ? (
+                  <div className="p-4 bg-gradient-to-br from-amber-50/60 via-white to-orange-50/40 rounded-xl border border-amber-200 shadow-2xs space-y-3 animate-in fade-in duration-150">
+                    <div className="flex items-center justify-between text-[11px] font-bold text-amber-900 border-b border-amber-200/60 pb-1.5">
+                      <span className="flex items-center gap-1.5">
+                        <span>{language === 'English' && q.model_answer_en ? '🇬🇧 English Model Answer' : '🇮🇳 বাংলা মডেল উত্তর'}</span>
+                      </span>
+                      <span className="text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full text-[10px] font-black">
+                        WBBSE Syllabus Standard
+                      </span>
                     </div>
-                    <p className="whitespace-pre-wrap text-slate-800 text-xs font-medium leading-relaxed bg-white p-3 rounded-lg border border-indigo-100">
-                      {modelAns}
+
+                    <p className="whitespace-pre-wrap text-slate-800 text-xs sm:text-sm font-medium leading-relaxed bg-white p-3.5 rounded-xl border border-amber-100 shadow-2xs">
+                      {getQText(q.model_answer, q.model_answer_en) || q.model_answer || q.model_answer_en}
                     </p>
+
                     {marking && (
-                      <div className="text-xs text-indigo-900 bg-indigo-100/60 p-2 rounded-lg border border-indigo-200">
-                        ⚖️ <strong>{T("নম্বর বিভাজন (Marking Scheme):", "Marking Scheme:")}</strong> {marking}
+                      <div className="text-xs text-amber-950 bg-amber-100/70 p-2.5 rounded-xl border border-amber-200 flex items-start gap-2">
+                        <span className="shrink-0 text-sm">⚖️</span>
+                        <div>
+                          <strong>{T("নম্বর বিভাজন ও চিত্র নির্দেশিকা:", "Marking Scheme & Diagrams:")}</strong> {marking}
+                        </div>
                       </div>
                     )}
                   </div>
-                )}
-              </div>
-            )}
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setOpenOutline(prev => ({ ...prev, [q.id]: true }))}
+                    className="w-full text-left p-3 bg-amber-50/50 hover:bg-amber-50 rounded-xl border border-dashed border-amber-200 text-xs font-bold text-amber-800 flex items-center justify-between cursor-pointer transition"
+                  >
+                    <span>👁️ {T("সম্পূর্ণ মডেল উত্তর ও চিত্র রূপরেখা দেখুন...", "View full model answer & diagrams...")}</span>
+                    <span className="text-[10px] bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full font-black">Click to read</span>
+                  </button>
+                )
+              ) : (
+                <div className="p-3 bg-slate-50 rounded-xl border border-dashed border-slate-200 text-xs text-slate-500 flex items-center justify-between">
+                  <span>{T("এই প্রশ্নের মডেল উত্তর শীঘ্রই যুক্ত করা হবে।", "Model answer for this question will be uploaded soon.")}</span>
+                  {canManage && (
+                    <button
+                      type="button"
+                      onClick={() => handleStartEdit(q)}
+                      className="text-blue-600 hover:text-blue-800 font-bold underline cursor-pointer"
+                    >
+                      + উত্তর লিখুন
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
 
-            {/* Ask Admin / Teacher button */}
-            <div className="mt-4 pt-3 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2">
+            {/* Ask Doubt Button */}
+            <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between">
               <button
                 type="button"
                 onClick={() => onAskDoubt(q.id, idx + 1, qText)}
-                className="st-btn bg-indigo-600 hover:bg-indigo-700 text-xs py-2 px-4 flex items-center gap-1.5"
+                className="st-btn bg-indigo-600 hover:bg-indigo-700 text-xs py-1.5 px-3.5 flex items-center gap-1.5 text-white rounded-xl font-bold shadow-xs cursor-pointer"
               >
                 <HelpCircle className="w-3.5 h-3.5" />
                 {T(`🙋 Ask Admin / Teacher (Q${idx + 1})`, `🙋 Ask Admin / Teacher (Q${idx + 1})`)}
               </button>
-              {modelAns && (
-                <button
-                  type="button"
-                  onClick={() => downloadTextFile(`Model_Answer_Q${idx + 1}.txt`, modelAns)}
-                  className="text-xs text-slate-600 hover:text-slate-900 font-bold flex items-center gap-1"
-                >
-                  <Download className="w-3 h-3" />
-                  {T("Download Model Outline", "Download Model Outline")}
-                </button>
-              )}
+              <span className="text-[11px] text-slate-400">
+                {T("উত্তর বুঝতে অসুবিধা হলে প্রশ্ন করুন", "Ask teacher if doubt")}
+              </span>
             </div>
           </div>
         );
@@ -5814,14 +6275,6 @@ function QuestionBankManagerSection({ topics, selectedTopicId, setSelectedTopicI
         </select>
       </div>
 
-      {/* Chapter 2/3/5 Marks Dual-Tier PDF Answer Sheet Manager */}
-      <AdminChapterPdfAnswerSheetsManager
-        topicId={selectedTopicId}
-        userRole={userRole}
-        T={T}
-        downloadTextFile={downloadTextFile}
-      />
-
       {/* Tabs */}
       <div className="flex border-b border-slate-200 bg-slate-50 rounded-t-xl overflow-hidden">
         <button
@@ -6803,7 +7256,7 @@ function QuestionBankManagerSection({ topics, selectedTopicId, setSelectedTopicI
                   <span>২/৩/৫ নম্বরের বড় প্রশ্ন ও মডেল উত্তর আউটলাইন:</span>
                 </div>
                 <p>
-                  বড় প্রশ্নের সম্পূর্ণ পয়েন্টভিত্তিক হ্যান্ডরিটেন বা প্রিন্টেড অফিশিয়াল উত্তরপত্র ওপরের <strong>"অফিসিয়াল PDF উত্তরপত্র আপলোড"</strong> সেকশনে ফ্রি এবং পেইড ছাত্রছাত্রীদের জন্য PDF হিসেবে আপলোড করতে পারেন। এছাড়া সরাসরি অ্যাপের ভেতরে মডেল উত্তর ও মার্কিং স্কিম দেখতে নিচের বক্সে বাংলা ও ইংরেজিতে লিখে দিতে পারেন।
+                  প্রতিটি ২/৩/৫ নম্বরের বড় প্রশ্নের নিচে শিক্ষার্থীদের সহজে পড়া ও মুখস্থ করার জন্য সম্পূর্ণ পয়েন্টভিত্তিক মডেল উত্তর (বাংলা ও English), মার্কিং স্কিম ও চিত্র নির্দেশিকা সরাসরি নিচের বক্সে লিখে সেভ করুন। শিক্ষার্থীরা প্রশ্নের নিচেই এই সম্পূর্ণ উত্তর দেখতে পাবে।
                 </p>
               </div>
 
@@ -6947,6 +7400,58 @@ function QuestionBankManagerSection({ topics, selectedTopicId, setSelectedTopicI
                 Question Bank List ({questions.length} questions in this chapter)
               </h3>
               <span className="text-xs text-slate-500">বাংলা ও ইংরেজি উভয় ভাষার প্রশ্ন ও উত্তর একনজরে দেখুন ও প্রয়োজন অনুযায়ী মুছুন</span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!window.confirm(`⚠️ আপনি কি নিশ্চিত যে এই অধ্যায়ের (${topics.find((t: any) => t.id === selectedTopicId)?.name || `Chapter ${selectedTopicId}`}) সমস্ত ২/৩/৫ নম্বরের প্রশ্ন ডিলিট করতে চান?`)) return;
+                  try {
+                    const descIds = questions.filter((q: any) => q.marks > 1 || q.is_descriptive || q.q_type === '2M' || q.q_type === '3M' || q.q_type === '5M').map((q: any) => q.id);
+                    if (descIds.length === 0) {
+                      alert('এই অধ্যায়ে কোনো ২/৩/৫ নম্বরের প্রশ্ন নেই।');
+                      return;
+                    }
+                    const res = await fetch('/api/questions/bulk_delete', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ question_ids: descIds })
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                      alert(`🗑️ সফলভাবে ${data.deleted_count}টি ২/৩/৫ নম্বরের প্রশ্ন ডিলিট করা হয়েছে। এখন আপনি উত্তরসহ নতুন করে প্রশ্ন আপলোড করতে পারেন!`);
+                      if (fetchQuestions) fetchQuestions(selectedTopicId);
+                    }
+                  } catch (e: any) {
+                    alert(e.message);
+                  }
+                }}
+                className="st-btn bg-amber-600 hover:bg-amber-700 text-white text-xs py-1.5 px-3 rounded-lg font-bold flex items-center gap-1 cursor-pointer"
+              >
+                <span>🗑️</span>
+                <span>এই অধ্যায়ের সমস্ত ২/৩/৫M প্রশ্ন মুছুন</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!window.confirm(`⚠️ সতর্কতা! এই অধ্যায়ের সমস্ত প্রশ্ন (MCQ, SAQ, 2M, 3M, 5M) মুছে ফেলা হবে। আপনি কি নিশ্চিত?`)) return;
+                  try {
+                    const res = await fetch(`/api/topics/${selectedTopicId}/questions`, { method: 'DELETE' });
+                    const data = await res.json();
+                    if (data.success) {
+                      alert('🗑️ এই অধ্যায়ের সমস্ত প্রশ্ন সফলভাবে মুছে ফেলা হয়েছে।');
+                      if (fetchQuestions) fetchQuestions(selectedTopicId);
+                    }
+                  } catch (e: any) {
+                    alert(e.message);
+                  }
+                }}
+                className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-bold rounded-lg transition cursor-pointer"
+              >
+                অধ্যায়ের সব প্রশ্ন মুছুন
+              </button>
             </div>
           </div>
 
@@ -8460,6 +8965,7 @@ function AdminDoubtAssignmentHub({ allDoubts, allUsers, fetchAllDoubts, T, getQT
 // ============================================================================
 function AdminUploadMockTestsSection({ mockTests, fetchMockTests, T }: any) {
   const [testType, setTestType] = useState('Chapter Wise Mock Test');
+  const [mockLanguage, setMockLanguage] = useState<'Bengali' | 'English'>('Bengali');
   const [price, setPrice] = useState(29);
   const [fileName, setFileName] = useState('');
   const [fileData, setFileData] = useState('');
@@ -8489,11 +8995,12 @@ function AdminUploadMockTestsSection({ mockTests, fetchMockTests, T }: any) {
           file_name: fileName,
           file_data: fileData,
           uploader: 'Shawon Kar (Head Admin)',
-          price
+          price,
+          language: mockLanguage
         })
       });
       const data = await res.json();
-      alert(`🎉 Published successfully as: ${data.code_num}!`);
+      alert(`🎉 Published successfully as: ${data.code_num} (${mockLanguage === 'English' ? 'English Medium' : 'বাংলা মাধ্যম'})!`);
       setFileName('');
       setFileData('');
       fetchMockTests();
@@ -8536,6 +9043,20 @@ function AdminUploadMockTestsSection({ mockTests, fetchMockTests, T }: any) {
             <option value="Chapter Wise Mock Test">Chapter Wise Mock Test (Default ₹29) — Auto: chapter mock - 001...</option>
             <option value="Final Mock Test">Final Mock Test (Default ₹49) — Auto: final mock - 001...</option>
             <option value="Board Suggestions">Board Suggestions (Default ₹69) — Auto: suggestion - 001...</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="text-xs font-bold text-slate-700 block mb-1">
+            {T("মাধ্যম / ভাষা (Medium / Language):", "Medium / Language:")}
+          </label>
+          <select
+            value={mockLanguage}
+            onChange={e => setMockLanguage(e.target.value as 'Bengali' | 'English')}
+            className="st-select"
+          >
+            <option value="Bengali">🇮🇳 বাংলা মাধ্যম (Bengali Medium)</option>
+            <option value="English">🇬🇧 English Medium</option>
           </select>
         </div>
 
@@ -8596,6 +9117,9 @@ function AdminUploadMockTestsSection({ mockTests, fetchMockTests, T }: any) {
                     <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">
                       ₹{m.price}
                     </span>
+                    <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+                      {m.language === 'English' ? '🇬🇧 English' : '🇮🇳 বাংলা'}
+                    </span>
                   </div>
                   <p className="text-xs text-slate-500 mt-0.5">
                     File: {m.file_name} | By: {m.uploader} | Date: {m.timestamp}
@@ -8614,6 +9138,185 @@ function AdminUploadMockTestsSection({ mockTests, fetchMockTests, T }: any) {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// ADMIN: MOCK EXAM & DEVICE APPROVALS (IP & Device Lock)
+// ============================================================================
+function AdminMockExamApprovalsSection({ T, user }: any) {
+  const [requests, setRequests] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [processingId, setProcessingId] = useState<number | null>(null);
+
+  const fetchRequests = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/mock_exam_requests');
+      const data = await res.json();
+      setRequests(Array.isArray(data) ? data : []);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRequests();
+  }, []);
+
+  const handleApprove = async (id: number) => {
+    setProcessingId(id);
+    try {
+      const res = await fetch(`/api/mock_exam_requests/${id}/approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ approved_by: user?.full_name || 'Shawon Kar (Head Admin)' })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert('✅ শিক্ষার্থীর ডিভাইস ও পরীক্ষার অনুমতি সফলভাবে অনুমোদিত হয়েছে!');
+        fetchRequests();
+      }
+    } catch (e: any) {
+      alert(e.message);
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleReject = async (id: number) => {
+    if (!window.confirm('আপনি কি এই পরীক্ষার অনুমতি বাতিল করতে চান?')) return;
+    setProcessingId(id);
+    try {
+      const res = await fetch(`/api/mock_exam_requests/${id}/reject`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ admin_note: 'Head Admin disapproval' })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert('❌ অনুরোধ বাতিল করা হয়েছে।');
+        fetchRequests();
+      }
+    } catch (e: any) {
+      alert(e.message);
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const pendingCount = requests.filter(r => r.status === 'Pending').length;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-6 rounded-2xl border border-slate-200 shadow-xs">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900">
+              🛡️ {T("মক টেস্ট পরীক্ষা ও ডিভাইস আইপি অনুমোদন", "Mock Exam & Device IP Approvals")}
+            </h2>
+            {pendingCount > 0 && (
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-rose-500 text-white animate-pulse">
+                {pendingCount} Pending
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-slate-500">
+            {T("কোনো শিক্ষার্থী পরীক্ষা দেওয়ার সময় তাদের ডিভাইস ও আইপি থেকে অনুরোধ এখানে জমা হবে। আপনি অনুমোদন করলেই তারা পাসওয়ার্ড-সুরক্ষিত প্রশ্নপত্র দেখতে পাবে।",
+               "Students requesting exam paper access appear here with their IP and device info. Approving unlocks the password-protected paper.")}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={fetchRequests}
+          disabled={loading}
+          className="st-btn bg-blue-600 hover:bg-blue-700 text-white text-xs py-2 px-4 rounded-xl flex items-center gap-1.5 font-bold cursor-pointer shadow-xs"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+          <span>রিফ্রেশ</span>
+        </button>
+      </div>
+
+      {requests.length === 0 ? (
+        <div className="p-12 bg-white rounded-2xl border border-slate-200 text-center text-slate-500">
+          <p className="font-bold text-slate-700 text-base">{T("বর্তমানে কোনো পরীক্ষার অনুরোধ জমা নেই।", "No pending exam requests at this time.")}</p>
+          <p className="text-xs text-slate-400 mt-1">শিক্ষার্থীরা মক টেস্টে পরীক্ষার অনুরোধ জানালে তা এখানে দৃশ্যমান হবে।</p>
+        </div>
+      ) : (
+        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider">
+                  <th className="p-3.5">ID / সময়</th>
+                  <th className="p-3.5">শিক্ষার্থী</th>
+                  <th className="p-3.5">পরীক্ষা কোড</th>
+                  <th className="p-3.5">ডিভাইস ও আইপি</th>
+                  <th className="p-3.5">স্ট্যাটাস</th>
+                  <th className="p-3.5 text-right">অ্যাকশন</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {requests.map((r: any) => (
+                  <tr key={r.id} className="hover:bg-slate-50/60 transition">
+                    <td className="p-3.5 font-mono text-slate-500">
+                      #{r.id}
+                      <span className="block text-[10px] text-slate-400">{r.created_at?.slice(0, 16)}</span>
+                    </td>
+                    <td className="p-3.5">
+                      <span className="font-extrabold text-slate-900 block">{r.student_name}</span>
+                      <span className="text-slate-500 font-mono text-[11px]">📞 {r.student_phone || r.student_username}</span>
+                    </td>
+                    <td className="p-3.5">
+                      <span className="font-black text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded text-[11px]">
+                        {r.mock_code}
+                      </span>
+                    </td>
+                    <td className="p-3.5 font-mono text-[11px] text-slate-600">
+                      <span className="font-bold text-slate-800 block">🌐 IP: {r.ip_address}</span>
+                      <span className="text-slate-400 text-[10px] truncate max-w-[200px] block" title={r.device_info}>{r.device_info}</span>
+                    </td>
+                    <td className="p-3.5">
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                        r.status === 'Approved' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
+                        r.status === 'Rejected' ? 'bg-red-100 text-red-800 border border-red-300' :
+                        'bg-amber-100 text-amber-800 border border-amber-300 animate-pulse'
+                      }`}>
+                        {r.status}
+                      </span>
+                    </td>
+                    <td className="p-3.5 text-right space-x-2 whitespace-nowrap">
+                      {r.status !== 'Approved' && (
+                        <button
+                          type="button"
+                          disabled={processingId === r.id}
+                          onClick={() => handleApprove(r.id)}
+                          className="st-btn bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] py-1.5 px-3 rounded-lg font-bold cursor-pointer"
+                        >
+                          ✅ অনুমোদন
+                        </button>
+                      )}
+                      {r.status !== 'Rejected' && (
+                        <button
+                          type="button"
+                          disabled={processingId === r.id}
+                          onClick={() => handleReject(r.id)}
+                          className="px-2.5 py-1.5 text-[11px] font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg cursor-pointer"
+                        >
+                          ❌ বাতিল
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

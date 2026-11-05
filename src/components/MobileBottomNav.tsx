@@ -25,8 +25,8 @@ export const MobileBottomNav: React.FC<Props> = ({
   if (role === 'student') {
     const items = [
       { id: '🏠 Dashboard', labelBn: 'হোম', labelEn: 'Home', icon: Home },
-      { id: '🔒 Master 2/3/5M PDF Reader (DRM)', labelBn: 'মাস্টার PDF', labelEn: 'Master PDF', icon: ShieldCheck },
       { id: '📖 Practice Center', labelBn: 'অনুশীলন', labelEn: 'Practice', icon: BookOpen },
+      { id: '📄 Mock Tests & Suggestions', labelBn: 'মক টেস্ট', labelEn: 'Mock Tests', icon: FileCheck },
       { id: '💡 Ask Corner (Suggestions)', labelBn: 'সাজেশন', labelEn: 'Ask Corner', icon: Lightbulb },
     ];
 
@@ -80,20 +80,20 @@ export const MobileBottomNav: React.FC<Props> = ({
       icon: Home
     },
     {
-      id: '🛡️ PDF Security & DRM Approvals',
-      labelBn: 'DRM অনুমোদন',
-      labelEn: 'DRM Approvals',
+      id: user.role === 'admin' ? '🛡️ User Approvals' : '👨‍🏫 Student Track Records',
+      labelBn: user.role === 'admin' ? 'অনুমোদন' : 'শিক্ষার্থী',
+      labelEn: user.role === 'admin' ? 'Approvals' : 'Students',
       icon: ShieldCheck
     },
     {
-      id: user.role === 'admin' ? '❓ Student Doubt Assignment Hub' : '📝 Checking Submitted Answers',
+      id: user.role === 'admin' ? '❓ Student Doubt Assignment Hub' : '📝 Check Assigned Answer Sheets',
       labelBn: 'ডাউট/খাতা',
       labelEn: 'Doubts',
       icon: HelpCircle
     },
     {
-      id: user.role === 'admin' ? '📖 Question Bank Manager' : '📤 Upload Notes & Doubts',
-      labelBn: 'প্রশ্ন/PDF',
+      id: user.role === 'admin' ? '📖 Question Bank Manager' : '📤 Send Suggestions to Admin',
+      labelBn: 'প্রশ্ন ব্যাংক',
       labelEn: 'Questions',
       icon: Layers
     },
